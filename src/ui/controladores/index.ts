@@ -8,6 +8,12 @@ import { RequestAutenticado } from '../middlewares/autenticacaoMiddleware';
 
 const storage = new ArmazenamentoServico();
 
+// Helper para extrair string do query param
+function qs(val: any): string | undefined {
+  if (Array.isArray(val)) return val[0];
+  return val as string | undefined;
+}
+
 // ── Notícias ──
 const noticiaRepo = new NoticiaRepositorio();
 
@@ -22,10 +28,13 @@ function gerarSlug(titulo: string): string {
 export class NoticiaControlador {
   async listar(req: Request, res: Response): Promise<void> {
     try {
-      const { categoria, destaque, pagina = '1', limite = '10' } = req.query as any;
+      const pagina = parseInt(qs(req.query.pagina) || '1');
+      const limite = parseInt(qs(req.query.limite) || '10');
+      const categoria = qs(req.query.categoria);
+      const destaque = qs(req.query.destaque);
       const resultado = await noticiaRepo.listar(
         { categoria, publicado: true, destaque: destaque === 'true' ? true : undefined },
-        parseInt(pagina), parseInt(limite)
+        pagina, limite
       );
       res.json(resultado);
     } catch (e: any) { res.status(500).json({ erro: e.message }); }
@@ -33,8 +42,9 @@ export class NoticiaControlador {
 
   async listarAdmin(req: RequestAutenticado, res: Response): Promise<void> {
     try {
-      const { pagina = '1', limite = '20' } = req.query as any;
-      const resultado = await noticiaRepo.listar({}, parseInt(pagina), parseInt(limite));
+      const pagina = parseInt(qs(req.query.pagina) || '1');
+      const limite = parseInt(qs(req.query.limite) || '20');
+      const resultado = await noticiaRepo.listar({}, pagina, limite);
       res.json(resultado);
     } catch (e: any) { res.status(500).json({ erro: e.message }); }
   }
@@ -69,8 +79,8 @@ export class NoticiaControlador {
   async atualizar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
       const dados: any = { ...req.body };
-      if (dados.destaque) dados.destaque = dados.destaque === 'true';
-      if (dados.publicado) dados.publicado = dados.publicado === 'true';
+      if (dados.destaque !== undefined) dados.destaque = dados.destaque === 'true';
+      if (dados.publicado !== undefined) dados.publicado = dados.publicado === 'true';
       if (dados.tags && typeof dados.tags === 'string') dados.tags = JSON.parse(dados.tags);
       if (req.file) {
         const r = await storage.upload(req.file, 'noticias');
@@ -96,9 +106,12 @@ const projetoRepo = new ProjetoRepositorio();
 export class ProjetoControlador {
   async listar(req: Request, res: Response): Promise<void> {
     try {
-      const { status, categoria, destaque } = req.query as any;
+      const status = qs(req.query.status);
+      const categoria = qs(req.query.categoria);
+      const destaque = qs(req.query.destaque);
       const projetos = await projetoRepo.listar({
-        status, categoria,
+        status,
+        categoria,
         destaque: destaque === 'true' ? true : undefined,
       });
       res.json({ projetos, total: projetos.length });
@@ -116,7 +129,7 @@ export class ProjetoControlador {
   async criar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
       const dados: any = { ...req.body };
-      if (dados.destaque) dados.destaque = dados.destaque === 'true';
+      if (dados.destaque !== undefined) dados.destaque = dados.destaque === 'true';
       if (dados.beneficiados) dados.beneficiados = Number(dados.beneficiados);
       if (req.file) {
         const r = await storage.upload(req.file, 'projetos');
@@ -130,7 +143,7 @@ export class ProjetoControlador {
   async atualizar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
       const dados: any = { ...req.body };
-      if (dados.destaque) dados.destaque = dados.destaque === 'true';
+      if (dados.destaque !== undefined) dados.destaque = dados.destaque === 'true';
       if (dados.beneficiados) dados.beneficiados = Number(dados.beneficiados);
       if (req.file) {
         const r = await storage.upload(req.file, 'projetos');
@@ -156,8 +169,12 @@ const galeriaRepo = new GaleriaRepositorio();
 export class GaleriaControlador {
   async listar(req: Request, res: Response): Promise<void> {
     try {
-      const { categoria, destaque } = req.query as any;
-      const fotos = await galeriaRepo.listar({ categoria, destaque: destaque === 'true' ? true : undefined });
+      const categoria = qs(req.query.categoria);
+      const destaque = qs(req.query.destaque);
+      const fotos = await galeriaRepo.listar({
+        categoria,
+        destaque: destaque === 'true' ? true : undefined,
+      });
       res.json({ fotos, total: fotos.length });
     } catch (e: any) { res.status(500).json({ erro: e.message }); }
   }
@@ -167,7 +184,7 @@ export class GaleriaControlador {
       if (!req.file) { res.status(400).json({ erro: 'Imagem obrigatória' }); return; }
       const r = await storage.upload(req.file, 'galeria');
       const dados: any = { ...req.body, imagemUrl: r.urlPublica, imagemPublicId: r.publicId };
-      if (dados.destaque) dados.destaque = dados.destaque === 'true';
+      if (dados.destaque !== undefined) dados.destaque = dados.destaque === 'true';
       if (dados.ordem) dados.ordem = Number(dados.ordem);
       const foto = await galeriaRepo.criar(dados);
       res.status(201).json(foto);
@@ -177,7 +194,7 @@ export class GaleriaControlador {
   async atualizar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
       const dados: any = { ...req.body };
-      if (dados.destaque) dados.destaque = dados.destaque === 'true';
+      if (dados.destaque !== undefined) dados.destaque = dados.destaque === 'true';
       if (dados.ordem) dados.ordem = Number(dados.ordem);
       const foto = await galeriaRepo.atualizar(req.params.id, dados);
       if (!foto) { res.status(404).json({ erro: 'Não encontrado' }); return; }
@@ -201,7 +218,7 @@ const documentoRepo = new DocumentoRepositorio();
 export class DocumentoControlador {
   async listar(req: Request, res: Response): Promise<void> {
     try {
-      const { categoria } = req.query as any;
+      const categoria = qs(req.query.categoria);
       const docs = await documentoRepo.listar({ categoria, publico: true });
       res.json({ documentos: docs, total: docs.length });
     } catch (e: any) { res.status(500).json({ erro: e.message }); }
@@ -225,7 +242,7 @@ export class DocumentoControlador {
         nomeArquivo: req.file.originalname,
         tamanho: req.file.size,
       };
-      if (dados.publico) dados.publico = dados.publico === 'true';
+      if (dados.publico !== undefined) dados.publico = dados.publico === 'true';
       const doc = await documentoRepo.criar(dados);
       res.status(201).json(doc);
     } catch (e: any) { res.status(400).json({ erro: e.message }); }
@@ -234,7 +251,7 @@ export class DocumentoControlador {
   async atualizar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
       const dados: any = { ...req.body };
-      if (dados.publico) dados.publico = dados.publico === 'true';
+      if (dados.publico !== undefined) dados.publico = dados.publico === 'true';
       const doc = await documentoRepo.atualizar(req.params.id, dados);
       if (!doc) { res.status(404).json({ erro: 'Não encontrado' }); return; }
       res.json(doc);
@@ -268,8 +285,10 @@ export class ContatoControlador {
 
   async listar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
-      const { lido } = req.query as any;
-      const contatos = await contatoRepo.listar({ lido: lido === 'true' ? true : lido === 'false' ? false : undefined });
+      const lido = qs(req.query.lido);
+      const contatos = await contatoRepo.listar({
+        lido: lido === 'true' ? true : lido === 'false' ? false : undefined,
+      });
       res.json({ contatos, total: contatos.length });
     } catch (e: any) { res.status(500).json({ erro: e.message }); }
   }
@@ -293,7 +312,7 @@ export class ContatoControlador {
 const membroRepo = new MembroRepositorio();
 
 export class MembroControlador {
-  async listar(req: Request, res: Response): Promise<void> {
+  async listar(_req: Request, res: Response): Promise<void> {
     try {
       const membros = await membroRepo.listar({ ativo: true });
       res.json({ membros, total: membros.length });
@@ -311,7 +330,7 @@ export class MembroControlador {
     try {
       const dados: any = { ...req.body };
       if (dados.ordem) dados.ordem = Number(dados.ordem);
-      if (dados.ativo) dados.ativo = dados.ativo === 'true';
+      if (dados.ativo !== undefined) dados.ativo = dados.ativo === 'true';
       if (req.file) {
         const r = await storage.upload(req.file, 'membros');
         dados.fotoUrl = r.urlPublica; dados.fotoPublicId = r.publicId;
