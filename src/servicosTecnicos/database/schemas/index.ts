@@ -1,7 +1,96 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
-// ── Usuario ──
-export const UsuarioSchema = new Schema({
+// ── Interfaces ──
+
+export interface IUsuario extends Document {
+  nome: string;
+  email: string;
+  senhaHash: string;
+  role: 'admin' | 'editor';
+  ativo: boolean;
+  criadoEm: Date;
+}
+
+export interface INoticia extends Document {
+  titulo: string;
+  subtitulo?: string;
+  conteudo: string;
+  slug: string;
+  imagemUrl?: string;
+  imagemPublicId?: string;
+  categoria: string;
+  destaque: boolean;
+  publicado: boolean;
+  autor?: string;
+  tags: string[];
+  criadoEm: Date;
+  atualizadoEm: Date;
+}
+
+export interface IProjeto extends Document {
+  titulo: string;
+  descricao: string;
+  descricaoCompleta?: string;
+  imagemUrl?: string;
+  imagemPublicId?: string;
+  status: string;
+  categoria: string;
+  beneficiados?: number;
+  dataInicio?: string;
+  dataFim?: string;
+  destaque: boolean;
+  criadoEm: Date;
+}
+
+export interface IGaleria extends Document {
+  titulo: string;
+  descricao?: string;
+  imagemUrl: string;
+  imagemPublicId: string;
+  categoria: string;
+  destaque: boolean;
+  ordem: number;
+  criadoEm: Date;
+}
+
+export interface IDocumento extends Document {
+  titulo: string;
+  descricao?: string;
+  categoria: string;
+  arquivoUrl: string;
+  arquivoPublicId: string;
+  nomeArquivo?: string;
+  tamanho: number;
+  publico: boolean;
+  criadoEm: Date;
+}
+
+export interface IContato extends Document {
+  nome: string;
+  email: string;
+  telefone?: string;
+  assunto: string;
+  mensagem: string;
+  lido: boolean;
+  respondido: boolean;
+  criadoEm: Date;
+}
+
+export interface IMembro extends Document {
+  nome: string;
+  cargo: string;
+  descricao?: string;
+  fotoUrl?: string;
+  fotoPublicId?: string;
+  email?: string;
+  ordem: number;
+  ativo: boolean;
+  criadoEm: Date;
+}
+
+// ── Schemas ──
+
+export const UsuarioSchema = new Schema<IUsuario>({
   nome: { type: String, required: true },
   email: { type: String, required: true, unique: true, lowercase: true },
   senhaHash: { type: String, required: true },
@@ -9,8 +98,7 @@ export const UsuarioSchema = new Schema({
   ativo: { type: Boolean, default: true },
 }, { timestamps: { createdAt: 'criadoEm' } });
 
-// ── Noticia ──
-export const NoticiaSchema = new Schema({
+export const NoticiaSchema = new Schema<INoticia>({
   titulo: { type: String, required: true },
   subtitulo: String,
   conteudo: { type: String, required: true },
@@ -24,8 +112,7 @@ export const NoticiaSchema = new Schema({
   tags: [String],
 }, { timestamps: { createdAt: 'criadoEm', updatedAt: 'atualizadoEm' } });
 
-// ── Projeto ──
-export const ProjetoSchema = new Schema({
+export const ProjetoSchema = new Schema<IProjeto>({
   titulo: { type: String, required: true },
   descricao: { type: String, required: true },
   descricaoCompleta: String,
@@ -39,8 +126,7 @@ export const ProjetoSchema = new Schema({
   destaque: { type: Boolean, default: false },
 }, { timestamps: { createdAt: 'criadoEm' } });
 
-// ── Galeria ──
-export const GaleriaSchema = new Schema({
+export const GaleriaSchema = new Schema<IGaleria>({
   titulo: { type: String, required: true },
   descricao: String,
   imagemUrl: { type: String, required: true },
@@ -50,8 +136,7 @@ export const GaleriaSchema = new Schema({
   ordem: { type: Number, default: 0 },
 }, { timestamps: { createdAt: 'criadoEm' } });
 
-// ── Documento ──
-export const DocumentoSchema = new Schema({
+export const DocumentoSchema = new Schema<IDocumento>({
   titulo: { type: String, required: true },
   descricao: String,
   categoria: { type: String, enum: ['estatuto', 'ata', 'relatorio', 'prestacao_contas', 'certificado', 'outros'], default: 'outros' },
@@ -62,8 +147,7 @@ export const DocumentoSchema = new Schema({
   publico: { type: Boolean, default: true },
 }, { timestamps: { createdAt: 'criadoEm' } });
 
-// ── Contato ──
-export const ContatoSchema = new Schema({
+export const ContatoSchema = new Schema<IContato>({
   nome: { type: String, required: true },
   email: { type: String, required: true },
   telefone: String,
@@ -73,8 +157,7 @@ export const ContatoSchema = new Schema({
   respondido: { type: Boolean, default: false },
 }, { timestamps: { createdAt: 'criadoEm' } });
 
-// ── Membro ──
-export const MembroSchema = new Schema({
+export const MembroSchema = new Schema<IMembro>({
   nome: { type: String, required: true },
   cargo: { type: String, required: true },
   descricao: String,
@@ -85,10 +168,12 @@ export const MembroSchema = new Schema({
   ativo: { type: Boolean, default: true },
 }, { timestamps: { createdAt: 'criadoEm' } });
 
-export const UsuarioModel = mongoose.model('Usuario', UsuarioSchema);
-export const NoticiaModel = mongoose.model('Noticia', NoticiaSchema);
-export const ProjetoModel = mongoose.model('Projeto', ProjetoSchema);
-export const GaleriaModel = mongoose.model('Galeria', GaleriaSchema);
-export const DocumentoModel = mongoose.model('Documento', DocumentoSchema);
-export const ContatoModel = mongoose.model('Contato', ContatoSchema);
-export const MembroModel = mongoose.model('Membro', MembroSchema);
+// ── Models ──
+
+export const UsuarioModel   = mongoose.model<IUsuario>('Usuario', UsuarioSchema);
+export const NoticiaModel   = mongoose.model<INoticia>('Noticia', NoticiaSchema);
+export const ProjetoModel   = mongoose.model<IProjeto>('Projeto', ProjetoSchema);
+export const GaleriaModel   = mongoose.model<IGaleria>('Galeria', GaleriaSchema);
+export const DocumentoModel = mongoose.model<IDocumento>('Documento', DocumentoSchema);
+export const ContatoModel   = mongoose.model<IContato>('Contato', ContatoSchema);
+export const MembroModel    = mongoose.model<IMembro>('Membro', MembroSchema);

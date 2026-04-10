@@ -3,7 +3,7 @@ import {
   GaleriaModel, DocumentoModel, ContatoModel, MembroModel
 } from '@servicosTecnicos/database/schemas';
 
-function mapear(doc: any, extra?: string[]) {
+function mapear(doc: any) {
   const base: any = { ...doc.toObject(), id: doc._id.toString() };
   delete base._id; delete base.__v;
   return base;
