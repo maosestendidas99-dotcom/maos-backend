@@ -8,19 +8,23 @@ import { RequestAutenticado } from '../middlewares/autenticacaoMiddleware';
 
 const storage = new ArmazenamentoServico();
 
-// Helper: garante que req.query retorna string pura (nunca string[])
-function qs(val: string | string[] | undefined | object): string {
-  if (Array.isArray(val)) return String(val[0] ?? '');
-  if (typeof val === 'object' && val !== null) return '';
+// Helper: garante string pura — nunca string[]
+function qs(val: unknown): string {
+  if (Array.isArray(val)) return String((val as string[])[0] ?? '');
+  if (val !== null && typeof val === 'object') return '';
   return String(val ?? '');
 }
 
-// Helper: retorna string ou undefined (para filtros opcionais)
-function qsOpt(val: string | string[] | undefined | object): string | undefined {
+// Helper: string ou undefined para filtros opcionais
+function qsOpt(val: unknown): string | undefined {
   if (val === undefined || val === null) return undefined;
-  if (Array.isArray(val)) return val[0] ? String(val[0]) : undefined;
+  if (Array.isArray(val)) {
+    const first = (val as string[])[0];
+    return first ? String(first) : undefined;
+  }
   if (typeof val === 'object') return undefined;
-  return val ? String(val) : undefined;
+  const s = String(val);
+  return s || undefined;
 }
 
 // ── Notícias ──
@@ -60,7 +64,8 @@ export class NoticiaControlador {
 
   async buscarPorSlug(req: Request, res: Response): Promise<void> {
     try {
-      const noticia = await noticiaRepo.buscarPorSlug(req.params.slug);
+      const slug = String(req.params.slug ?? '');
+      const noticia = await noticiaRepo.buscarPorSlug(slug);
       if (!noticia || !noticia.publicado) { res.status(404).json({ erro: 'Não encontrado' }); return; }
       res.json(noticia);
     } catch (e: any) { res.status(500).json({ erro: e.message }); }
@@ -96,7 +101,8 @@ export class NoticiaControlador {
         const r = await storage.upload(req.file, 'noticias');
         dados.imagemUrl = r.urlPublica; dados.imagemPublicId = r.publicId;
       }
-      const noticia = await noticiaRepo.atualizar(req.params.id, dados);
+      const id = String(req.params.id ?? '');
+      const noticia = await noticiaRepo.atualizar(id, dados);
       if (!noticia) { res.status(404).json({ erro: 'Não encontrado' }); return; }
       res.json(noticia);
     } catch (e: any) { res.status(400).json({ erro: e.message }); }
@@ -104,7 +110,8 @@ export class NoticiaControlador {
 
   async deletar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
-      await noticiaRepo.deletar(req.params.id);
+      const id = String(req.params.id ?? '');
+      await noticiaRepo.deletar(id);
       res.json({ mensagem: 'Excluído com sucesso' });
     } catch (e: any) { res.status(500).json({ erro: e.message }); }
   }
@@ -130,7 +137,8 @@ export class ProjetoControlador {
 
   async buscarPorId(req: Request, res: Response): Promise<void> {
     try {
-      const projeto = await projetoRepo.buscarPorId(req.params.id);
+      const id = String(req.params.id ?? '');
+      const projeto = await projetoRepo.buscarPorId(id);
       if (!projeto) { res.status(404).json({ erro: 'Não encontrado' }); return; }
       res.json(projeto);
     } catch (e: any) { res.status(500).json({ erro: e.message }); }
@@ -139,8 +147,8 @@ export class ProjetoControlador {
   async criar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
       const dados: any = { ...req.body };
-      if (dados.destaque    !== undefined) dados.destaque    = dados.destaque    === 'true';
-      if (dados.beneficiados) dados.beneficiados = Number(dados.beneficiados);
+      if (dados.destaque     !== undefined) dados.destaque     = dados.destaque     === 'true';
+      if (dados.beneficiados)               dados.beneficiados = Number(dados.beneficiados);
       if (req.file) {
         const r = await storage.upload(req.file, 'projetos');
         dados.imagemUrl = r.urlPublica; dados.imagemPublicId = r.publicId;
@@ -153,13 +161,14 @@ export class ProjetoControlador {
   async atualizar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
       const dados: any = { ...req.body };
-      if (dados.destaque    !== undefined) dados.destaque    = dados.destaque    === 'true';
-      if (dados.beneficiados) dados.beneficiados = Number(dados.beneficiados);
+      if (dados.destaque     !== undefined) dados.destaque     = dados.destaque     === 'true';
+      if (dados.beneficiados)               dados.beneficiados = Number(dados.beneficiados);
       if (req.file) {
         const r = await storage.upload(req.file, 'projetos');
         dados.imagemUrl = r.urlPublica; dados.imagemPublicId = r.publicId;
       }
-      const projeto = await projetoRepo.atualizar(req.params.id, dados);
+      const id = String(req.params.id ?? '');
+      const projeto = await projetoRepo.atualizar(id, dados);
       if (!projeto) { res.status(404).json({ erro: 'Não encontrado' }); return; }
       res.json(projeto);
     } catch (e: any) { res.status(400).json({ erro: e.message }); }
@@ -167,7 +176,8 @@ export class ProjetoControlador {
 
   async deletar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
-      await projetoRepo.deletar(req.params.id);
+      const id = String(req.params.id ?? '');
+      await projetoRepo.deletar(id);
       res.json({ mensagem: 'Excluído com sucesso' });
     } catch (e: any) { res.status(500).json({ erro: e.message }); }
   }
@@ -195,7 +205,7 @@ export class GaleriaControlador {
       const r = await storage.upload(req.file, 'galeria');
       const dados: any = { ...req.body, imagemUrl: r.urlPublica, imagemPublicId: r.publicId };
       if (dados.destaque !== undefined) dados.destaque = dados.destaque === 'true';
-      if (dados.ordem) dados.ordem = Number(dados.ordem);
+      if (dados.ordem)                  dados.ordem    = Number(dados.ordem);
       const foto = await galeriaRepo.criar(dados);
       res.status(201).json(foto);
     } catch (e: any) { res.status(400).json({ erro: e.message }); }
@@ -205,8 +215,9 @@ export class GaleriaControlador {
     try {
       const dados: any = { ...req.body };
       if (dados.destaque !== undefined) dados.destaque = dados.destaque === 'true';
-      if (dados.ordem) dados.ordem = Number(dados.ordem);
-      const foto = await galeriaRepo.atualizar(req.params.id, dados);
+      if (dados.ordem)                  dados.ordem    = Number(dados.ordem);
+      const id = String(req.params.id ?? '');
+      const foto = await galeriaRepo.atualizar(id, dados);
       if (!foto) { res.status(404).json({ erro: 'Não encontrado' }); return; }
       res.json(foto);
     } catch (e: any) { res.status(400).json({ erro: e.message }); }
@@ -214,9 +225,10 @@ export class GaleriaControlador {
 
   async deletar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
-      const foto = await galeriaRepo.buscarPorId(req.params.id);
+      const id = String(req.params.id ?? '');
+      const foto = await galeriaRepo.buscarPorId(id);
       if (foto?.imagemPublicId) await storage.deletar(foto.imagemPublicId, 'image');
-      await galeriaRepo.deletar(req.params.id);
+      await galeriaRepo.deletar(id);
       res.json({ mensagem: 'Excluído com sucesso' });
     } catch (e: any) { res.status(500).json({ erro: e.message }); }
   }
@@ -262,7 +274,8 @@ export class DocumentoControlador {
     try {
       const dados: any = { ...req.body };
       if (dados.publico !== undefined) dados.publico = dados.publico === 'true';
-      const doc = await documentoRepo.atualizar(req.params.id, dados);
+      const id = String(req.params.id ?? '');
+      const doc = await documentoRepo.atualizar(id, dados);
       if (!doc) { res.status(404).json({ erro: 'Não encontrado' }); return; }
       res.json(doc);
     } catch (e: any) { res.status(400).json({ erro: e.message }); }
@@ -270,9 +283,10 @@ export class DocumentoControlador {
 
   async deletar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
-      const doc = await documentoRepo.buscarPorId(req.params.id);
+      const id = String(req.params.id ?? '');
+      const doc = await documentoRepo.buscarPorId(id);
       if (doc?.arquivoPublicId) await storage.deletar(doc.arquivoPublicId, 'raw');
-      await documentoRepo.deletar(req.params.id);
+      await documentoRepo.deletar(id);
       res.json({ mensagem: 'Excluído com sucesso' });
     } catch (e: any) { res.status(500).json({ erro: e.message }); }
   }
@@ -308,14 +322,16 @@ export class ContatoControlador {
 
   async marcarLido(req: RequestAutenticado, res: Response): Promise<void> {
     try {
-      const contato = await contatoRepo.atualizar(req.params.id, { lido: true });
+      const id = String(req.params.id ?? '');
+      const contato = await contatoRepo.atualizar(id, { lido: true });
       res.json(contato);
     } catch (e: any) { res.status(400).json({ erro: e.message }); }
   }
 
   async deletar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
-      await contatoRepo.deletar(req.params.id);
+      const id = String(req.params.id ?? '');
+      await contatoRepo.deletar(id);
       res.json({ mensagem: 'Excluído' });
     } catch (e: any) { res.status(500).json({ erro: e.message }); }
   }
@@ -362,7 +378,8 @@ export class MembroControlador {
         const r = await storage.upload(req.file, 'membros');
         dados.fotoUrl = r.urlPublica; dados.fotoPublicId = r.publicId;
       }
-      const membro = await membroRepo.atualizar(req.params.id, dados);
+      const id = String(req.params.id ?? '');
+      const membro = await membroRepo.atualizar(id, dados);
       if (!membro) { res.status(404).json({ erro: 'Não encontrado' }); return; }
       res.json(membro);
     } catch (e: any) { res.status(400).json({ erro: e.message }); }
@@ -370,7 +387,8 @@ export class MembroControlador {
 
   async deletar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
-      await membroRepo.deletar(req.params.id);
+      const id = String(req.params.id ?? '');
+      await membroRepo.deletar(id);
       res.json({ mensagem: 'Excluído' });
     } catch (e: any) { res.status(500).json({ erro: e.message }); }
   }
