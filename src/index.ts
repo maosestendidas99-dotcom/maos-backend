@@ -47,7 +47,7 @@ app.use('/uploads', express.static(uploadsPath));
 app.use('/api', rotas);
 
 app.get('/', (_req: Request, res: Response) => {
-  res.json({ status: 'online', app: 'AMD - Associação Mãos Dadas', version: '1.0.0' });
+  res.json({ status: 'online', app: 'IME - Associação Mãos estendidas', version: '1.0.0' });
 });
 
 app.get('/health', (_req: Request, res: Response) => {
@@ -59,7 +59,7 @@ async function iniciar() {
     if (!fs.existsSync(uploadsPath)) fs.mkdirSync(uploadsPath, { recursive: true });
     await connectMongo();
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`\n🌟 AMD Backend rodando na porta ${PORT}\n`);
+      console.log(`\n🌟 IME Backend rodando na porta ${PORT}\n`);
     });
   } catch (e) {
     console.error('❌ Erro ao iniciar:', e);

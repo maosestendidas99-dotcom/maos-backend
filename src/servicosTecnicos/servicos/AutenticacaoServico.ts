@@ -11,12 +11,12 @@ export class AutenticacaoServico {
   }
 
   gerarToken(payload: { usuarioId: string; email: string; role: string }): string {
-    const secret = process.env.JWT_SECRET || 'amd_secret_key';
+    const secret = process.env.JWT_SECRET || 'ime_secret_key';
     return jwt.sign(payload, secret, { expiresIn: '7d' });
   }
 
   verificarToken(token: string): any {
-    const secret = process.env.JWT_SECRET || 'amd_secret_key';
+    const secret = process.env.JWT_SECRET || 'ime_secret_key';
     return jwt.verify(token, secret);
   }
 }

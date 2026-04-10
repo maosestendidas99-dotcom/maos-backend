@@ -8,12 +8,12 @@ cloudinary.config({
 });
 
 export class ArmazenamentoServico {
-  async upload(arquivo: Express.Multer.File, pasta = 'amd'): Promise<{ urlPublica: string; publicId: string }> {
+  async upload(arquivo: Express.Multer.File, pasta = 'ime'): Promise<{ urlPublica: string; publicId: string }> {
     const isImage = arquivo.mimetype.startsWith('image/');
     const resourceType: 'image' | 'raw' = isImage ? 'image' : 'raw';
 
     const resultado = await cloudinary.uploader.upload(arquivo.path, {
-      folder: `${process.env.CLOUDINARY_FOLDER || 'amd'}/${pasta}`,
+      folder: `${process.env.CLOUDINARY_FOLDER || 'ime'}/${pasta}`,
       resource_type: resourceType,
       use_filename: true,
       unique_filename: true,
