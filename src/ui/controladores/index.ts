@@ -8,10 +8,19 @@ import { RequestAutenticado } from '../middlewares/autenticacaoMiddleware';
 
 const storage = new ArmazenamentoServico();
 
-// Helper para extrair string do query param
-function qs(val: any): string | undefined {
-  if (Array.isArray(val)) return val[0];
-  return val as string | undefined;
+// Helper: garante que req.query retorna string pura (nunca string[])
+function qs(val: string | string[] | undefined | object): string {
+  if (Array.isArray(val)) return String(val[0] ?? '');
+  if (typeof val === 'object' && val !== null) return '';
+  return String(val ?? '');
+}
+
+// Helper: retorna string ou undefined (para filtros opcionais)
+function qsOpt(val: string | string[] | undefined | object): string | undefined {
+  if (val === undefined || val === null) return undefined;
+  if (Array.isArray(val)) return val[0] ? String(val[0]) : undefined;
+  if (typeof val === 'object') return undefined;
+  return val ? String(val) : undefined;
 }
 
 // ── Notícias ──
@@ -28,10 +37,10 @@ function gerarSlug(titulo: string): string {
 export class NoticiaControlador {
   async listar(req: Request, res: Response): Promise<void> {
     try {
-      const pagina = parseInt(qs(req.query.pagina) || '1');
-      const limite = parseInt(qs(req.query.limite) || '10');
-      const categoria = qs(req.query.categoria);
-      const destaque = qs(req.query.destaque);
+      const pagina    = parseInt(qs(req.query.pagina)  || '1');
+      const limite    = parseInt(qs(req.query.limite)  || '10');
+      const categoria = qsOpt(req.query.categoria);
+      const destaque  = qsOpt(req.query.destaque);
       const resultado = await noticiaRepo.listar(
         { categoria, publicado: true, destaque: destaque === 'true' ? true : undefined },
         pagina, limite
@@ -61,7 +70,8 @@ export class NoticiaControlador {
     try {
       const { titulo, subtitulo, conteudo, categoria, destaque, publicado, autor, tags } = req.body;
       if (!titulo || !conteudo) { res.status(400).json({ erro: 'Título e conteúdo obrigatórios' }); return; }
-      let imagemUrl, imagemPublicId;
+      let imagemUrl: string | undefined;
+      let imagemPublicId: string | undefined;
       if (req.file) {
         const r = await storage.upload(req.file, 'noticias');
         imagemUrl = r.urlPublica; imagemPublicId = r.publicId;
@@ -79,7 +89,7 @@ export class NoticiaControlador {
   async atualizar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
       const dados: any = { ...req.body };
-      if (dados.destaque !== undefined) dados.destaque = dados.destaque === 'true';
+      if (dados.destaque  !== undefined) dados.destaque  = dados.destaque  === 'true';
       if (dados.publicado !== undefined) dados.publicado = dados.publicado === 'true';
       if (dados.tags && typeof dados.tags === 'string') dados.tags = JSON.parse(dados.tags);
       if (req.file) {
@@ -106,10 +116,10 @@ const projetoRepo = new ProjetoRepositorio();
 export class ProjetoControlador {
   async listar(req: Request, res: Response): Promise<void> {
     try {
-      const status = qs(req.query.status);
-      const categoria = qs(req.query.categoria);
-      const destaque = qs(req.query.destaque);
-      const projetos = await projetoRepo.listar({
+      const status    = qsOpt(req.query.status);
+      const categoria = qsOpt(req.query.categoria);
+      const destaque  = qsOpt(req.query.destaque);
+      const projetos  = await projetoRepo.listar({
         status,
         categoria,
         destaque: destaque === 'true' ? true : undefined,
@@ -129,7 +139,7 @@ export class ProjetoControlador {
   async criar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
       const dados: any = { ...req.body };
-      if (dados.destaque !== undefined) dados.destaque = dados.destaque === 'true';
+      if (dados.destaque    !== undefined) dados.destaque    = dados.destaque    === 'true';
       if (dados.beneficiados) dados.beneficiados = Number(dados.beneficiados);
       if (req.file) {
         const r = await storage.upload(req.file, 'projetos');
@@ -143,7 +153,7 @@ export class ProjetoControlador {
   async atualizar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
       const dados: any = { ...req.body };
-      if (dados.destaque !== undefined) dados.destaque = dados.destaque === 'true';
+      if (dados.destaque    !== undefined) dados.destaque    = dados.destaque    === 'true';
       if (dados.beneficiados) dados.beneficiados = Number(dados.beneficiados);
       if (req.file) {
         const r = await storage.upload(req.file, 'projetos');
@@ -169,9 +179,9 @@ const galeriaRepo = new GaleriaRepositorio();
 export class GaleriaControlador {
   async listar(req: Request, res: Response): Promise<void> {
     try {
-      const categoria = qs(req.query.categoria);
-      const destaque = qs(req.query.destaque);
-      const fotos = await galeriaRepo.listar({
+      const categoria = qsOpt(req.query.categoria);
+      const destaque  = qsOpt(req.query.destaque);
+      const fotos     = await galeriaRepo.listar({
         categoria,
         destaque: destaque === 'true' ? true : undefined,
       });
@@ -218,8 +228,8 @@ const documentoRepo = new DocumentoRepositorio();
 export class DocumentoControlador {
   async listar(req: Request, res: Response): Promise<void> {
     try {
-      const categoria = qs(req.query.categoria);
-      const docs = await documentoRepo.listar({ categoria, publico: true });
+      const categoria = qsOpt(req.query.categoria);
+      const docs      = await documentoRepo.listar({ categoria, publico: true });
       res.json({ documentos: docs, total: docs.length });
     } catch (e: any) { res.status(500).json({ erro: e.message }); }
   }
@@ -237,10 +247,10 @@ export class DocumentoControlador {
       const r = await storage.upload(req.file, 'documentos');
       const dados: any = {
         ...req.body,
-        arquivoUrl: r.urlPublica,
+        arquivoUrl:      r.urlPublica,
         arquivoPublicId: r.publicId,
-        nomeArquivo: req.file.originalname,
-        tamanho: req.file.size,
+        nomeArquivo:     req.file.originalname,
+        tamanho:         req.file.size,
       };
       if (dados.publico !== undefined) dados.publico = dados.publico === 'true';
       const doc = await documentoRepo.criar(dados);
@@ -278,14 +288,17 @@ export class ContatoControlador {
       if (!nome || !email || !assunto || !mensagem) {
         res.status(400).json({ erro: 'Preencha todos os campos obrigatórios' }); return;
       }
-      const contato = await contatoRepo.criar({ nome, email, telefone, assunto, mensagem, lido: false, respondido: false });
+      const contato = await contatoRepo.criar({
+        nome, email, telefone, assunto, mensagem,
+        lido: false, respondido: false,
+      });
       res.status(201).json({ mensagem: 'Mensagem enviada com sucesso!', id: contato.id });
     } catch (e: any) { res.status(400).json({ erro: e.message }); }
   }
 
   async listar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
-      const lido = qs(req.query.lido);
+      const lido     = qsOpt(req.query.lido);
       const contatos = await contatoRepo.listar({
         lido: lido === 'true' ? true : lido === 'false' ? false : undefined,
       });
@@ -329,7 +342,7 @@ export class MembroControlador {
   async criar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
       const dados: any = { ...req.body };
-      if (dados.ordem) dados.ordem = Number(dados.ordem);
+      if (dados.ordem !== undefined) dados.ordem = Number(dados.ordem);
       if (dados.ativo !== undefined) dados.ativo = dados.ativo === 'true';
       if (req.file) {
         const r = await storage.upload(req.file, 'membros');
@@ -343,7 +356,7 @@ export class MembroControlador {
   async atualizar(req: RequestAutenticado, res: Response): Promise<void> {
     try {
       const dados: any = { ...req.body };
-      if (dados.ordem) dados.ordem = Number(dados.ordem);
+      if (dados.ordem !== undefined) dados.ordem = Number(dados.ordem);
       if (dados.ativo !== undefined) dados.ativo = dados.ativo === 'true';
       if (req.file) {
         const r = await storage.upload(req.file, 'membros');
