@@ -6,6 +6,7 @@ const router = Router();
 const ctrl = new NoticiaControlador();
 router.get('/', (req, res) => ctrl.listar(req, res));
 router.get('/slug/:slug', (req, res) => ctrl.buscarPorSlug(req, res));
+router.get('/admin', autenticar, (req, res) => ctrl.listarAdmin(req, res));
 router.get('/admin/todas', autenticar, (req, res) => ctrl.listarAdmin(req, res));
 router.post('/', autenticar, upload.single('imagem'), (req, res) => ctrl.criar(req as any, res));
 router.put('/:id', autenticar, upload.single('imagem'), (req, res) => ctrl.atualizar(req as any, res));

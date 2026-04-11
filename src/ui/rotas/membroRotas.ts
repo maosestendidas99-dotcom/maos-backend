@@ -5,6 +5,7 @@ import { upload } from '@servicosTecnicos/uploads/multerConfig';
 const router = Router();
 const ctrl = new MembroControlador();
 router.get('/', (req, res) => ctrl.listar(req, res));
+router.get('/admin', autenticar, (req, res) => ctrl.listarAdmin(req, res));
 router.get('/admin/todos', autenticar, (req, res) => ctrl.listarAdmin(req, res));
 router.post('/', autenticar, upload.single('foto'), (req, res) => ctrl.criar(req as any, res));
 router.put('/:id', autenticar, upload.single('foto'), (req, res) => ctrl.atualizar(req as any, res));
